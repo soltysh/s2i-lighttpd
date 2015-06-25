@@ -1,13 +1,13 @@
-
 #!/bin/bash -e
+
 cat <<EOF
 This is the lighttpd-centos7 S2I image:
 To use it, install S2I: https://github.com/openshift/source-to-image
 
 Sample invocation:
 
-sti build git://<source code> lighttpd-centos7 <application image>
+sti build https://github.com/soltysh/sti-lighttpd.git --context-dir=test/test-app/ lighttpd-centos7 sample-app
 
 You can then run the resulting image via:
-docker run <application image>
+docker run -p 8080:8080 sample-app
 EOF

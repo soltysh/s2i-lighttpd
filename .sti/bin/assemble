@@ -1,4 +1,3 @@
-
 #!/bin/bash -e
 #
 # S2I assemble script for the 'lighttpd-centos7' image.
@@ -8,21 +7,5 @@
 #	https://github.com/openshift/source-to-image/blob/master/docs/builder_image.md
 #
 
-if [ "$1" = "-h" ]; then
-	# If the 'lighttpd-centos7' assemble script is executed with '-h' flag,
-	# print the usage.
-	exec /usr/local/sti/usage
-fi
-
-# Restore artifacts from the previous build (if they exist).
-#
-if [ "$(ls /tmp/artifacts/ 2>/dev/null)" ]; then
-  echo "---> Restoring build artifacts"
-  mv /tmp/artifacts/. ./
-fi
-
 echo "---> Installing application source"
 cp -Rf /tmp/src/. ./
-
-echo "---> Building application from source"
-# TODO: Add build steps for your application, eg npm install, bundle install
