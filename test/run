@@ -1,4 +1,3 @@
-
 #!/bin/bash
 #
 # The 'run' performs a simple test that verifies the S2I image.
@@ -7,6 +6,7 @@
 # For more information see the documentation:
 #	https://github.com/openshift/source-to-image/blob/master/docs/builder_image.md
 #
+
 # IMAGE_NAME specifies a name of the candidate image used for testing.
 # The image has to be available before this script is executed.
 #
@@ -118,10 +118,8 @@ test_connection() {
   return $result
 }
 
-# Build the application image twice to ensure the 'save-artifacts' and
-# 'restore-artifacts' scripts are working properly
+# Prepare the application and verify it's running
 prepare
-run_sti_build
 check_result $?
 
 # Verify the 'usage' script is working properly
