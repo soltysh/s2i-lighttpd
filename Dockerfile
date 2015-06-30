@@ -1,36 +1,40 @@
-
-# lighttpd-centos7
+# We are basing our builder image on openshift base-centos7 image
 FROM openshift/base-centos7
 
-# TODO: Put the maintainer name in the image metadata
-# MAINTAINER Your Name <your@email.com>
+# Inform users who's the maintainer of this builder image
+MAINTAINER Maciej Szulik <maszulik@redhat.com>
 
-# TODO: Rename the builder environment variable to inform users about application you provide them
-# ENV BUILDER_VERSION 1.0
+# Inform about software versions being used inside the builder
+ENV LIGHTTPD_VERSION=1.4.35
 
-# TODO: Set labels used in OpenShift to describe the builder image
-#LABEL io.k8s.description="Platform for building xyz" \
-#      io.k8s.display-name="builder x.y.z" \
-#      io.openshift.expose-services="8080:http" \
-#      io.openshift.tags="builder,x.y.z,etc."
+# Set labels used in OpenShift to describe the builder images
+LABEL io.k8s.description="Platform for serving static HTML files" \
+      io.k8s.display-name="Lighttpd 1.4.35" \
+      io.openshift.expose-services="8080:http" \
+      io.openshift.tags="builder,html,lighttpd"
 
-# TODO: Install required packages here:
-# RUN yum install -y ... && yum clean all -y
+# Install the required software, namely Lighttpd and
+RUN yum install -y lighttpd && \
+    # clean yum cache files, as they are not needed and will only make the image bigger in the end
+    yum clean all -y
 
-# TODO (optional): Copy the builder files into /opt/openshift
-# COPY ./<builder_folder>/ /opt/openshift/
+# Although this is defined in openshift/base-centos7 image it's repeated here
+# to make it clear why the following COPY operation is happening
+LABEL io.openshift.s2i.scripts-url=image:///usr/local/sti
+# Copy the S2I scripts from ./.sti/bin/ to /usr/local/sti
+COPY ./.sti/bin/ /usr/local/sti
 
-# TODO: Copy the S2I scripts to /usr/local/sti, since openshift/base-centos7 image sets io.openshift.s2i.scripts-url label that way, or update that label
-# COPY ./.sti/bin/ /usr/local/sti
+# Copy the lighttpd configuration file
+COPY ./etc/ /opt/openshift/etc
 
-# TODO: Drop the root user and make the content of /opt/openshift owned by user 1001
-# RUN chown -R 1001:1001 /opt/openshift
+# Drop the root user and make the content of /opt/openshift owned by user 1001
+RUN chown -R 1001:1001 /opt/openshift
 
-# This default user is created in the openshift/base-centos7 image
+# Set the default user for the image, the user itself was created in the base image
 USER 1001
 
-# TODO: Set the default port for applications built using this image
-# EXPOSE 8080
+# Specify the ports the final image will expose
+EXPOSE 8080
 
-# TODO: Set the default CMD for the image
-# CMD ["usage"]
+# Set the default CMD to print the usage of the image, if somebody does docker run
+CMD ["usage"]
