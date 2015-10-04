@@ -25,10 +25,10 @@ LABEL io.openshift.s2i.scripts-url=image:///usr/local/sti
 COPY ./.sti/bin/ /usr/local/sti
 
 # Copy the lighttpd configuration file
-COPY ./etc/ /opt/openshift/etc
+COPY ./etc/ /opt/app-root/etc
 
 # Drop the root user and make the content of /opt/openshift owned by user 1001
-RUN chown -R 1001:1001 /opt/openshift
+RUN chown -R 1001:1001 /opt/app-root
 
 # Set the default user for the image, the user itself was created in the base image
 USER 1001
