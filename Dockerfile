@@ -13,6 +13,9 @@ LABEL io.k8s.description="Platform for serving static HTML files" \
       io.openshift.expose-services="8080:http" \
       io.openshift.tags="builder,html,lighttpd"
 
+# Enable epel repository for lighttpd
+RUN yum install -y epel-release
+
 # Install the required software, namely Lighttpd and
 RUN yum install -y lighttpd && \
     # clean yum cache files, as they are not needed and will only make the image bigger in the end
