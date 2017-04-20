@@ -21,11 +21,9 @@ RUN yum install -y lighttpd && \
     # clean yum cache files, as they are not needed and will only make the image bigger in the end
     yum clean all -y
 
-# Although this is defined in openshift/base-centos7 image it's repeated here
-# to make it clear why the following COPY operation is happening
-LABEL io.openshift.s2i.scripts-url=image:///usr/local/sti
-# Copy the S2I scripts from ./.sti/bin/ to /usr/local/sti
-COPY ./.sti/bin/ /usr/local/sti
+# Copy the S2I scripts to /usr/libexec/s2i which is the location set for scripts
+# in openshift/base-centos7 as io.openshift.s2i.scripts-url label
+COPY ./s2i/bin/ /usr/libexec/s2i
 
 # Copy the lighttpd configuration file
 COPY ./etc/ /opt/app-root/etc
@@ -40,4 +38,4 @@ USER 1001
 EXPOSE 8080
 
 # Set the default CMD to print the usage of the image, if somebody does docker run
-CMD ["usage"]
+CMD ["/usr/libexec/s2i/usage"]

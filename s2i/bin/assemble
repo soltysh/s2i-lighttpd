@@ -7,5 +7,10 @@
 #	https://github.com/openshift/source-to-image/blob/master/docs/builder_image.md
 #
 
+# If the 's2i-lighttpd' assemble script is executed with the '-h' flag, print the usage.
+if [[ "$1" == "-h" ]]; then
+    exec /usr/libexec/s2i/usage
+fi
+
 echo "---> Installing application source"
 cp -Rf /tmp/src/. ./

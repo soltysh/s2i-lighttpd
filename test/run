@@ -6,20 +6,26 @@
 # For more information see the documentation:
 #	https://github.com/openshift/source-to-image/blob/master/docs/builder_image.md
 #
-
 # IMAGE_NAME specifies a name of the candidate image used for testing.
 # The image has to be available before this script is executed.
 #
 IMAGE_NAME=${IMAGE_NAME-lighttpd-centos7-candidate}
 
+# Determining system utility executables (darwin compatibility check)
+READLINK_EXEC="readlink"
+MKTEMP_EXEC="mktemp"
+if [[ "$OSTYPE" =~ 'darwin' ]]; then
+  ! type -a "greadlink" &>"/dev/null" || READLINK_EXEC="greadlink"
+  ! type -a "gmktemp" &>"/dev/null" || MKTEMP_EXEC="gmktemp"
+fi
+
 test_dir="$(readlink -zf $(dirname "${BASH_SOURCE[0]}"))"
 image_dir=$(readlink -zf ${test_dir}/..)
-scripts_url="file://${image_dir}/.sti/bin"
 cid_file=$(mktemp -u --suffix=.cid)
 
 # Since we built the candidate image locally, we don't want S2I to attempt to pull
 # it from Docker hub
-sti_args="--force-pull=false -s ${scripts_url}"
+s2i_args="--pull-policy=never --loglevel=2"
 
 # Port the image exposes service to be tested
 test_port=8080
@@ -33,11 +39,23 @@ container_exists() {
 }
 
 container_ip() {
-  docker inspect --format="{{ .NetworkSettings.IPAddress }}" $(cat $cid_file)
+  if [ ! -z "$DOCKER_HOST" ] && [[ "$OSTYPE" =~ 'darwin' ]]; then
+    docker-machine ip
+  else
+    docker inspect --format="{{ .NetworkSettings.IPAddress }}" $(cat $cid_file)
+  fi
 }
 
-run_sti_build() {
-  sti build ${sti_args} file://${test_dir}/test-app ${IMAGE_NAME} ${IMAGE_NAME}-testapp
+container_port() {
+  if [ ! -z "$DOCKER_HOST" ] && [[ "$OSTYPE" =~ 'darwin' ]]; then
+    docker inspect --format="{{(index .NetworkSettings.Ports \"$test_port/tcp\" 0).HostPort}}" "$(cat "${cid_file}")"
+  else
+    echo $test_port
+  fi
+}
+
+run_s2i_build() {
+  s2i build --incremental=true ${s2i_args} file://${test_dir}/test-app ${IMAGE_NAME} ${IMAGE_NAME}-testapp
 }
 
 prepare() {
@@ -45,13 +63,13 @@ prepare() {
     echo "ERROR: The image ${IMAGE_NAME} must exist before this script is executed."
     exit 1
   fi
-  # sti build requires the application is a valid 'GIT' repository
+  # s2i build requires the application is a valid 'Git' repository
   pushd ${test_dir}/test-app >/dev/null
   git init
   git config user.email "build@localhost" && git config user.name "builder"
   git add -A && git commit -m "Sample commit"
   popd >/dev/null
-  run_sti_build
+  run_s2i_build
 }
 
 run_test_application() {
@@ -92,19 +110,19 @@ wait_for_cid() {
 }
 
 test_usage() {
-  echo "Testing 'sti usage'..."
-  sti usage ${sti_args} ${IMAGE_NAME} &>/dev/null
+  echo "Testing 's2i usage'..."
+  s2i usage ${s2i_args} ${IMAGE_NAME} &>/dev/null
 }
 
 test_connection() {
-  echo "Testing HTTP connection..."
+  echo "Testing HTTP connection (http://$(container_ip):$(container_port))"
   local max_attempts=10
   local sleep_time=1
   local attempt=1
   local result=1
   while [ $attempt -le $max_attempts ]; do
-    echo "Sending GET request to http://$(container_ip):${test_port}/"
-    response_code=$(curl -s -w %{http_code} -o /dev/null http://$(container_ip):${test_port}/)
+    echo "Sending GET request to http://$(container_ip):$(container_port)/"
+    response_code=$(curl -s -w %{http_code} -o /dev/null http://$(container_ip):$(container_port)/)
     status=$?
     if [ $status -eq 0 ]; then
       if [ $response_code -eq 200 ]; then
@@ -118,7 +136,7 @@ test_connection() {
   return $result
 }
 
-# Prepare the application and verify it's running
+# Build the application and verify it its working properly
 prepare
 check_result $?
 
@@ -136,4 +154,3 @@ test_connection
 check_result $?
 
 cleanup
-
